@@ -7,8 +7,8 @@
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can sign up with email and password via Clerk
-- [ ] **AUTH-02**: User session persists across browser refresh
+- [x] **AUTH-01**: User can sign up with email and password via Clerk
+- [x] **AUTH-02**: User session persists across browser refresh
 
 ### Invoices
 
@@ -75,8 +75,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
 | INV-01 | Phase 2 | Pending |
 | INV-02 | Phase 2 | Pending |
 | INV-03 | Phase 2 | Pending |
