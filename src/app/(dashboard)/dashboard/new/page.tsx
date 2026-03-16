@@ -1,9 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import DashboardContent from './_components/DashboardContent';
+import NewInvoiceForm from './_components/NewInvoiceForm';
 
-export default async function DashboardPage() {
+export default async function NewInvoicePage() {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
-  return <DashboardContent />;
+  return <NewInvoiceForm />;
 }
