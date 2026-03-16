@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { useState } from 'react';
-import { FileText, Clock, AlertCircle, CheckCircle, Plus, Trash2, DollarSign, Settings } from 'lucide-react';
+import { FileText, Clock, AlertCircle, CheckCircle, Plus, Trash2, DollarSign, Settings, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 
 const STATUS_LABELS = {
@@ -37,11 +37,12 @@ export default function DashboardContent() {
             <FileText className="h-6 w-6 text-gray-900" />
             <span className="text-xl font-bold text-gray-900">InvoiceTracker</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/settings"
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            >
+          <div className="flex items-center gap-2">
+            <Link href="/billing" className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors">
+              <CreditCard className="h-4 w-4" />
+              Billing
+            </Link>
+            <Link href="/settings" className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
               <Settings className="h-4 w-4" />
             </Link>
             <Link

@@ -18,6 +18,10 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const ownerId = await getCurrentUserId(ctx);
 
+    // TODO Phase 4: uncomment to gate invoice creation on active subscription
+    // const tenant = await ctx.db.query("tenants").withIndex("by_owner", q => q.eq("ownerId", ownerId)).first();
+    // if (!["active","trialing"].includes(tenant?.subscriptionStatus ?? "none")) throw new Error("SUBSCRIPTION_REQUIRED");
+
     const existing = await ctx.db
       .query("invoices")
       .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
