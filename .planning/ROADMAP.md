@@ -14,8 +14,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Project scaffold, Convex schema, Clerk auth, tenant model, and user sync webhook
 - [x] **Phase 2: Core Invoice Workflow** - Invoice CRUD, status lifecycle cron, mark-as-paid, and dashboard
-- [ ] **Phase 3: Automated Reminders** - Reminder scheduler, email dispatch via Resend, configurable schedule, and per-invoice override
-- [ ] **Phase 4: Stripe Billing** - Subscription checkout, webhook lifecycle, subscription gating, and business profile settings
+- [x] **Phase 3: Automated Reminders** - Reminder scheduler, email dispatch via Resend, configurable schedule, and per-invoice override
+- [x] **Phase 4: Stripe Billing** - Subscription checkout, webhook lifecycle, subscription gating, and business profile settings
 
 ## Phase Details
 
@@ -95,5 +95,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete | 2026-03-16 |
 | 2. Core Invoice Workflow | 3/3 | Complete | 2026-03-16 |
-| 3. Automated Reminders | 0/3 | Not started | - |
-| 4. Stripe Billing | 0/3 | Not started | - |
+| 3. Automated Reminders | 1/1 | Complete | 2026-03-16 |
+| 4. Stripe Billing | 1/1 | Complete | 2026-03-16 |

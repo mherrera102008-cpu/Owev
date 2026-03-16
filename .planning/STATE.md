@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed Phase 3 — automated email reminders, Convex scheduler, Settings page
-last_updated: "2026-03-16T15:54:42.433Z"
-last_activity: 2026-03-16 — Phase 2 executed (02-01 Invoice CRUD, 02-02 Cron+Dashboard Query, 02-03 Dashboard UI+Form)
+stopped_at: Completed Phase 4 — Stripe billing, checkout, subscription lifecycle webhooks, billing page
+last_updated: "2026-03-16T18:14:00.000Z"
+last_activity: 2026-03-16 — Phase 4 executed (04-01 Stripe billing)
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 3
-  completed_plans: 3
-  percent: 67
+  completed_phases: 4
+  total_plans: 4
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** Businesses stop losing money to forgotten follow-ups — the system automatically tracks every invoice and sends reminders at the right time, so getting paid becomes passive instead of manual.
-**Current focus:** Phase 2 — Invoice CRUD, Cron, Dashboard
+**Current focus:** Phase 4 Complete — all phases done
 
 ## Current Position
 
-Phase: 2 of 4 (Invoice CRUD + Dashboard)
-Plan: 3 of 3 in current phase
-Status: Phase 2 Complete
-Last activity: 2026-03-16 — Phase 2 executed (02-01 Invoice CRUD, 02-02 Cron+Dashboard Query, 02-03 Dashboard UI+Form)
+Phase: 4 of 4 (Stripe Billing)
+Plan: 1 of 1 in current phase
+Status: ALL PHASES COMPLETE
+Last activity: 2026-03-16 — Phase 4 executed (04-01 Stripe billing, checkout, webhooks, billing page)
 
-Progress: [███████░░░] 67%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: ~8.5 min/plan
-- Total execution time: ~36 minutes
+- Total execution time: ~53 minutes
 
 **By Phase:**
 
@@ -45,13 +45,16 @@ Progress: [███████░░░] 67%
 |-------|-------|-------|----------|
 | Phase 1 Foundation | 3 | 29 min | ~10 min |
 | Phase 2 Invoice CRUD + Dashboard | 3 | 7 min | ~2.3 min |
+| Phase 3 Reminders | 1 | ~5 min | ~5 min |
+| Phase 4 Billing | 1 | ~17 min | ~17 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01, 01-02, 01-03, 02-01, 02-02, 02-03
+- Last plans: 01-01, 01-02, 01-03, 02-01, 02-02, 02-03, 03-01, 04-01
 - Trend: On track
 
 *Updated after each plan completion*
 | Phase 03 P01 | 318 | 1 tasks | 7 files |
+| Phase 04 P01 | 17 min | 9 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -71,10 +74,13 @@ Recent decisions affecting current work:
 - [Phase 03]: Used native fetch in Convex action instead of resend SDK — no SDK import needed
 - [Phase 03]: scheduler.cancel() wrapped per-job try/catch — already-run jobs throw safely
 - [Phase 03]: Default reminder config [7,3,1] before / [1,3,7] after when no tenant config exists
+- [Phase 04]: Subscription gate in invoices.create left as comment — app remains fully functional for demo without Stripe configured
+- [Phase 04]: Stripe webhook uses idempotency via processedWebhooks table (already in schema from Phase 3 planning)
+- [Phase 04]: Used stripe.webhooks.constructEventAsync for async-compatible signature verification in Convex HTTP handlers
 
 ### Pending Todos
 
-None yet.
+None — all phases complete. Ready for production deployment with Stripe configuration.
 
 ### Blockers/Concerns
 
@@ -84,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T15:54:42.431Z
-Stopped at: Completed Phase 3 — automated email reminders, Convex scheduler, Settings page
+Last session: 2026-03-16T18:14:00.000Z
+Stopped at: Completed Phase 4 — Stripe billing, checkout, subscription lifecycle webhooks, billing page
 Resume file: None
