@@ -12,8 +12,8 @@ InvoiceTracker ships in four phases that follow the strict build-order dictated 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Project scaffold, Convex schema, Clerk auth, tenant model, and user sync webhook
-- [ ] **Phase 2: Core Invoice Workflow** - Invoice CRUD, status lifecycle cron, mark-as-paid, and dashboard
+- [x] **Phase 1: Foundation** - Project scaffold, Convex schema, Clerk auth, tenant model, and user sync webhook
+- [x] **Phase 2: Core Invoice Workflow** - Invoice CRUD, status lifecycle cron, mark-as-paid, and dashboard
 - [ ] **Phase 3: Automated Reminders** - Reminder scheduler, email dispatch via Resend, configurable schedule, and per-invoice override
 - [ ] **Phase 4: Stripe Billing** - Subscription checkout, webhook lifecycle, subscription gating, and business profile settings
 
@@ -48,9 +48,9 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: Invoice CRUD — create, read, update, delete with tenant scoping and auto-incrementing invoice numbers
-- [ ] 02-02: Status lifecycle — daily Convex cron sweeping all unpaid invoices (upcoming → due → overdue)
-- [ ] 02-03: Dashboard — summary aggregates (total, overdue count, unpaid amount) and filtered invoice list view
+- [x] 02-01: Invoice CRUD — create, read, update, delete with tenant scoping and auto-incrementing invoice numbers
+- [x] 02-02: Status lifecycle — daily Convex cron sweeping all unpaid invoices (upcoming → due → overdue)
+- [x] 02-03: Dashboard — summary aggregates (total, overdue count, unpaid amount) and filtered invoice list view
 
 ### Phase 3: Automated Reminders
 **Goal**: The system automatically sends email reminders to clients on the right days without the user having to do anything after creating the invoice
@@ -93,7 +93,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/3 | In Progress|  |
-| 2. Core Invoice Workflow | 0/3 | Not started | - |
+| 1. Foundation | 3/3 | Complete | 2026-03-16 |
+| 2. Core Invoice Workflow | 3/3 | Complete | 2026-03-16 |
 | 3. Automated Reminders | 0/3 | Not started | - |
 | 4. Stripe Billing | 0/3 | Not started | - |

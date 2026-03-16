@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Roadmap created — ready to plan Phase 1
-last_updated: "2026-03-16T13:05:58.425Z"
-last_activity: 2026-03-16 — Roadmap created, project initialized
+status: completed
+stopped_at: Completed Phase 2 — Invoice CRUD, cron, and dashboard UI
+last_updated: "2026-03-16T15:32:11.829Z"
+last_activity: 2026-03-16 — Phase 1 Foundation executed (01-01, 01-02, 01-03)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 33
 ---
 
@@ -21,32 +21,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** Businesses stop losing money to forgotten follow-ups — the system automatically tracks every invoice and sends reminders at the right time, so getting paid becomes passive instead of manual.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — Invoice CRUD, Cron, Dashboard
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation)
+Phase: 2 of 4 (Invoice CRUD + Dashboard)
 Plan: 3 of 3 in current phase
-Status: Phase 1 Complete
-Last activity: 2026-03-16 — Phase 1 Foundation executed (01-01, 01-02, 01-03)
+Status: Phase 2 Complete
+Last activity: 2026-03-16 — Phase 2 executed (02-01 Invoice CRUD, 02-02 Cron+Dashboard Query, 02-03 Dashboard UI+Form)
 
-Progress: [███░░░░░░░] 33%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: ~10 min/plan
-- Total execution time: ~29 minutes
+- Total plans completed: 6
+- Average duration: ~8.5 min/plan
+- Total execution time: ~36 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | Phase 1 Foundation | 3 | 29 min | ~10 min |
+| Phase 2 Invoice CRUD + Dashboard | 3 | 7 min | ~2.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01, 01-02, 01-03
+- Last 5 plans: 01-01, 01-02, 01-03, 02-01, 02-02, 02-03
 - Trend: On track
 
 *Updated after each plan completion*
@@ -65,6 +66,7 @@ Recent decisions affecting current work:
 - [01-foundation]: Added tests/, convex/, vitest.config.ts to tsconfig.json exclude — prevents vitest globals from breaking Next.js build
 - [01-foundation]: convex/*.ts files use @ts-nocheck until `npx convex dev` generates _generated/ types
 - [01-foundation]: upsertFromClerk is internalMutation — never publicly callable, only via Clerk webhook
+- [Phase 02]: @convex/* tsconfig alias + _generated/api.ts stub allows Next.js build to resolve Convex types before npx convex dev runs
 
 ### Pending Todos
 
@@ -78,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16
-Stopped at: Completed Phase 1 Foundation (01-01, 01-02, 01-03) — ready for Phase 2
+Last session: 2026-03-16T15:32:11.827Z
+Stopped at: Completed Phase 2 — Invoice CRUD, cron, and dashboard UI
 Resume file: None
