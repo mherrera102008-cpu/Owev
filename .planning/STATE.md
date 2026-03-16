@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed Phase 2 — Invoice CRUD, cron, and dashboard UI
-last_updated: "2026-03-16T15:32:11.829Z"
-last_activity: 2026-03-16 — Phase 1 Foundation executed (01-01, 01-02, 01-03)
+stopped_at: Completed Phase 3 — automated email reminders, Convex scheduler, Settings page
+last_updated: "2026-03-16T15:54:42.433Z"
+last_activity: 2026-03-16 — Phase 2 executed (02-01 Invoice CRUD, 02-02 Cron+Dashboard Query, 02-03 Dashboard UI+Form)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 2
-  percent: 33
+  completed_plans: 3
+  percent: 67
 ---
 
 # Project State
@@ -51,6 +51,7 @@ Progress: [███████░░░] 67%
 - Trend: On track
 
 *Updated after each plan completion*
+| Phase 03 P01 | 318 | 1 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,9 @@ Recent decisions affecting current work:
 - [01-foundation]: convex/*.ts files use @ts-nocheck until `npx convex dev` generates _generated/ types
 - [01-foundation]: upsertFromClerk is internalMutation — never publicly callable, only via Clerk webhook
 - [Phase 02]: @convex/* tsconfig alias + _generated/api.ts stub allows Next.js build to resolve Convex types before npx convex dev runs
+- [Phase 03]: Used native fetch in Convex action instead of resend SDK — no SDK import needed
+- [Phase 03]: scheduler.cancel() wrapped per-job try/catch — already-run jobs throw safely
+- [Phase 03]: Default reminder config [7,3,1] before / [1,3,7] after when no tenant config exists
 
 ### Pending Todos
 
@@ -80,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T15:32:11.827Z
-Stopped at: Completed Phase 2 — Invoice CRUD, cron, and dashboard UI
+Last session: 2026-03-16T15:54:42.431Z
+Stopped at: Completed Phase 3 — automated email reminders, Convex scheduler, Settings page
 Resume file: None
