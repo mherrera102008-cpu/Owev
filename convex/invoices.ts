@@ -5,6 +5,11 @@ import { internal } from "./_generated/api";
 import { getCurrentUserId } from "./users";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const ALLOWED_ACCENT_COLORS = new Set(["black", "blue", "violet", "green", "rose"]);
+const ALLOWED_CURRENCIES = new Set([
+  "USD", "EUR", "GBP", "INR", "JPY", "CNY",
+  "CAD", "AUD", "CHF", "BRL", "MXN", "SGD", "AED", "KRW",
+]);
 
 // Create a new invoice and schedule all reminder emails
 export const create = mutation({
@@ -13,10 +18,32 @@ export const create = mutation({
     clientEmail: v.string(),
     amount: v.number(),
     dueDate: v.number(),
+    currency: v.optional(v.string()),
     description: v.optional(v.string()),
+    accentColor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const ownerId = await getCurrentUserId(ctx);
+
+    // Input validation
+    if (args.clientName.trim().length === 0 || args.clientName.length > 200) {
+      throw new Error("Client name must be between 1 and 200 characters");
+    }
+    if (args.clientEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(args.clientEmail)) {
+      throw new Error("Invalid client email address");
+    }
+    if (args.description && args.description.length > 1000) {
+      throw new Error("Description must be 1000 characters or fewer");
+    }
+    if (args.amount <= 0 || args.amount > 100_000_000_00) {
+      throw new Error("Amount must be between $0.01 and $100,000,000");
+    }
+    if (args.accentColor !== undefined && !ALLOWED_ACCENT_COLORS.has(args.accentColor)) {
+      throw new Error("Invalid accent color");
+    }
+    if (args.currency !== undefined && !ALLOWED_CURRENCIES.has(args.currency)) {
+      throw new Error("Invalid currency");
+    }
 
     // TODO Phase 4: uncomment to gate invoice creation on active subscription
     // const tenant = await ctx.db.query("tenants").withIndex("by_owner", q => q.eq("ownerId", ownerId)).first();
@@ -43,9 +70,11 @@ export const create = mutation({
       clientName: args.clientName,
       clientEmail: args.clientEmail,
       amount: args.amount,
+      currency: args.currency ?? "USD",
       dueDate: args.dueDate,
       status,
       description: args.description,
+      accentColor: args.accentColor,
       invoiceNumber,
       createdAt: Date.now(),
     });
@@ -63,12 +92,12 @@ export const create = mutation({
     const now = Date.now();
     const scheduledIds: any[] = [];
 
-    // Schedule before-due reminders
+    // Schedule before-due reminders — skip if more than 1 day past due
     for (const days of config.daysBefore) {
       const sendAt = args.dueDate - days * ONE_DAY_MS;
-      if (sendAt > now) {
+      if (sendAt > now - ONE_DAY_MS) {
         const jobId = await ctx.scheduler.runAt(
-          sendAt,
+          Math.max(sendAt, now + 2000),
           internal.reminders.sendReminder,
           { invoiceId, reminderType: `${days}_days_before` }
         );
@@ -76,10 +105,11 @@ export const create = mutation({
       }
     }
 
-    // On-due-date reminder (if due date is in the future)
-    if (args.dueDate > now) {
+    // On-due-date reminder — if already past, send immediately
+    {
+      const sendAt = Math.max(args.dueDate, now + 2000);
       const jobId = await ctx.scheduler.runAt(
-        args.dueDate,
+        sendAt,
         internal.reminders.sendReminder,
         { invoiceId, reminderType: "on_due_date" }
       );

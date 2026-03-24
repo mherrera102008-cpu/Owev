@@ -1,215 +1,298 @@
 // @ts-nocheck
 'use client';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, useAction, useConvexAuth } from 'convex/react';
 import { api } from '@convex/_generated/api';
 import { useState } from 'react';
-import { FileText, Clock, AlertCircle, CheckCircle, Plus, Trash2, DollarSign, Settings, CreditCard } from 'lucide-react';
 import Link from 'next/link';
-
-const STATUS_LABELS = {
-  upcoming: { label: 'Upcoming', color: 'bg-blue-100 text-blue-700' },
-  due: { label: 'Due Today', color: 'bg-amber-100 text-amber-700' },
-  overdue: { label: 'Overdue', color: 'bg-red-100 text-red-700' },
-  paid: { label: 'Paid', color: 'bg-green-100 text-green-700' },
-};
 
 type StatusFilter = 'all' | 'upcoming' | 'due' | 'overdue' | 'paid';
 
+/* Status badge text + colour — no opacity hacks */
+const STATUS_LABEL: Record<string, string> = {
+  upcoming: '[ Pending ]',
+  due:      '[ Due Today ]',
+  overdue:  '[ Late ]',
+  paid:     '[ Paid ]',
+};
+const STATUS_COLOR: Record<string, string> = {
+  upcoming: 'text-[var(--t-muted)]',
+  due:      'text-[var(--t-fg)] font-black',
+  overdue:  'text-[var(--t-fg)] font-black',
+  paid:     'text-[var(--t-dim)]',
+};
+
 export default function DashboardContent() {
+  const { isAuthenticated } = useConvexAuth();
   const [filter, setFilter] = useState<StatusFilter>('all');
-  const summary = useQuery(api.dashboard.summary);
-  const invoices = useQuery(api.invoices.list, filter === 'all' ? {} : { status: filter });
-  const markPaid = useMutation(api.invoices.markPaid);
-  const remove = useMutation(api.invoices.remove);
 
-  const formatAmount = (cents: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+  const summary      = useQuery(api.dashboard.summary, isAuthenticated ? {} : 'skip');
+  const invoices     = useQuery(api.invoices.list, isAuthenticated ? (filter === 'all' ? {} : { status: filter }) : 'skip');
+  const markPaid     = useMutation(api.invoices.markPaid);
+  const remove       = useMutation(api.invoices.remove);
+  const remindClient = useAction(api.reminders.sendManualReminder);
+  const [reminding, setReminding] = useState<string | null>(null);
 
-  const formatDate = (ms: number) =>
-    new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const ZERO_DECIMAL = new Set(['JPY', 'KRW']);
+  const fmtAmt = (c: number, currency?: string) => {
+    const cur = currency ?? 'USD';
+    const divisor = ZERO_DECIMAL.has(cur) ? 1 : 100;
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: cur }).format(c / divisor);
+  };
+  const fmtDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+
+  const sg = 'font-[family-name:var(--font-space-grotesk)]';
+  const actionBtn = `${sg} small-caps font-bold text-xs underline underline-offset-4 px-2 py-1.5 transition-colors hover:bg-[var(--t-fg)] hover:text-[var(--t-bg)] text-[var(--t-fg)]`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Nav */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText className="h-6 w-6 text-gray-900" />
-            <span className="text-xl font-bold text-gray-900">InvoiceTracker</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/billing" className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors">
-              <CreditCard className="h-4 w-4" />
-              Billing
-            </Link>
-            <Link href="/settings" className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-              <Settings className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/dashboard/new"
-              className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              New Invoice
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="px-5 md:px-10 py-10 max-w-6xl mx-auto pb-20 md:pb-14">
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Clock className="h-4 w-4 text-blue-600" />
-              </div>
-              <span className="text-sm text-gray-500 font-medium">Upcoming</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{summary?.upcoming ?? '—'}</p>
-            <p className="text-xs text-gray-400 mt-1">invoices pending</p>
-          </div>
+      {/* ── Stat bar ────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 border border-[var(--t-border)] mb-14">
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-red-50 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-              </div>
-              <span className="text-sm text-gray-500 font-medium">Overdue</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{summary?.overdue ?? '—'}</p>
-            <p className="text-xs text-gray-400 mt-1">need attention</p>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </div>
-              <span className="text-sm text-gray-500 font-medium">Paid</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{summary?.paidThisMonth ?? '—'}</p>
-            <p className="text-xs text-gray-400 mt-1">this month</p>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <DollarSign className="h-4 w-4 text-purple-600" />
-              </div>
-              <span className="text-sm text-gray-500 font-medium">Outstanding</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              {summary ? formatAmount(summary.unpaidAmount) : '—'}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">total unpaid</p>
+        <div className="p-8 md:p-10 border-b sm:border-b-0 sm:border-r border-[var(--t-border)] flex flex-col gap-4">
+          <span className={`${sg} small-caps font-bold text-xs tracking-[0.2em] text-[var(--t-muted)]`}>
+            Unpaid
+          </span>
+          <div className="flex items-end gap-2">
+            <span className={`${sg} font-bold text-4xl md:text-5xl tracking-tighter leading-none text-[var(--t-fg)]`}>
+              {summary ? (summary.overdue + summary.due + summary.upcoming) : '—'}
+            </span>
+            <span className={`${sg} small-caps font-bold text-xs text-[var(--t-dim)] mb-1.5`}>invoices</span>
           </div>
         </div>
 
-        {/* Invoice table */}
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Invoices</h2>
-            {/* Filter tabs */}
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-              {(['all', 'upcoming', 'due', 'overdue', 'paid'] as StatusFilter[]).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setFilter(s)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors capitalize ${
-                    filter === s
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {s === 'due' ? 'Due Today' : s}
-                </button>
-              ))}
-            </div>
+        <div className="p-8 md:p-10 border-b sm:border-b-0 sm:border-r border-[var(--t-border)] flex flex-col gap-4 bg-[var(--t-surface)]">
+          <span className={`${sg} small-caps font-bold text-xs tracking-[0.2em] text-[var(--t-muted)]`}>
+            Overdue
+          </span>
+          <div className="flex items-end gap-2">
+            <span className={`${sg} font-bold text-4xl md:text-5xl tracking-tighter leading-none text-[var(--t-fg)]`}>
+              {summary?.overdue ?? '—'}
+            </span>
+            <span className={`${sg} small-caps font-bold text-xs text-[var(--t-dim)] mb-1.5`}>invoices</span>
           </div>
+        </div>
 
-          {/* Table */}
-          {!invoices ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
+        <div className="p-8 md:p-10 flex flex-col gap-4">
+          <span className={`${sg} small-caps font-bold text-xs tracking-[0.2em] text-[var(--t-muted)]`}>
+            Paid This Month
+          </span>
+          <div className="flex items-end gap-2">
+            <span className={`${sg} font-bold text-4xl md:text-5xl tracking-tighter leading-none text-[var(--t-fg)]`}>
+              {summary?.paidThisMonth ?? '—'}
+            </span>
+            <span className={`${sg} small-caps font-bold text-xs text-[var(--t-dim)] mb-1.5`}>invoices</span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── Ledger header ───────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 mb-7">
+        <div>
+          <h1 className={`${sg} font-bold text-2xl md:text-3xl tracking-tight uppercase text-[var(--t-fg)]`}>
+            Active Ledger
+          </h1>
+          <p className={`${sg} small-caps font-bold text-sm mt-1.5 text-[var(--t-muted)]`}>
+            All your invoices in one place
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Filter strip */}
+          <div className="flex items-stretch border border-[var(--t-border)]">
+            {(['all', 'upcoming', 'due', 'overdue', 'paid'] as StatusFilter[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`px-3 py-1.5 ${sg} small-caps font-bold text-xs tracking-wider border-r border-[var(--t-border)] last:border-r-0 transition-colors ${
+                  filter === s
+                    ? 'bg-[var(--t-fg)] text-[var(--t-bg)]'
+                    : 'text-[var(--t-fg)] hover:bg-[var(--t-surface)]'
+                }`}
+              >
+                {s === 'due' ? 'Due' : s}
+              </button>
+            ))}
+          </div>
+          <Link
+            href="/dashboard/new"
+            className={`bg-[var(--t-fg)] text-[var(--t-bg)] px-5 py-1.5 ${sg} small-caps font-bold text-xs tracking-wider hover:opacity-80 transition-opacity whitespace-nowrap border border-[var(--t-border)]`}
+          >
+            + New Invoice
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Ledger table ────────────────────────────────────── */}
+      <div className="border border-[var(--t-border)] overflow-hidden mb-14">
+
+        {!invoices ? (
+          <div className="flex items-center justify-center py-24">
+            <p className={`${sg} small-caps font-bold text-xs tracking-widest text-[var(--t-muted)] animate-pulse`}>
               Loading...
-            </div>
-          ) : invoices.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="p-4 bg-gray-50 rounded-full mb-4">
-                <FileText className="h-8 w-8 text-gray-300" />
-              </div>
-              <p className="text-gray-500 font-medium">No invoices found</p>
-              <p className="text-gray-400 text-sm mt-1">
-                {filter === 'all' ? 'Create your first invoice to get started' : `No ${filter} invoices`}
-              </p>
-              {filter === 'all' && (
-                <Link
-                  href="/dashboard/new"
-                  className="mt-4 flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  New Invoice
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left text-xs font-medium text-gray-400 px-6 py-3">#</th>
-                    <th className="text-left text-xs font-medium text-gray-400 px-6 py-3">Client</th>
-                    <th className="text-left text-xs font-medium text-gray-400 px-6 py-3">Amount</th>
-                    <th className="text-left text-xs font-medium text-gray-400 px-6 py-3">Due Date</th>
-                    <th className="text-left text-xs font-medium text-gray-400 px-6 py-3">Status</th>
-                    <th className="text-right text-xs font-medium text-gray-400 px-6 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {invoices.map((invoice) => (
-                    <tr key={invoice._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-gray-400">#{invoice.invoiceNumber}</td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-900">{invoice.clientName}</p>
-                        <p className="text-xs text-gray-400">{invoice.clientEmail}</p>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                        {formatAmount(invoice.amount)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {formatDate(invoice.dueDate)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_LABELS[invoice.status].color}`}>
-                          {STATUS_LABELS[invoice.status].label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          {invoice.status !== 'paid' && (
+            </p>
+          </div>
+
+        ) : invoices.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+            <p className={`${sg} font-bold text-sm uppercase tracking-widest text-[var(--t-fg)]`}>
+              No Invoices Found
+            </p>
+            <p className={`${sg} small-caps font-bold text-xs text-[var(--t-muted)]`}>
+              {filter === 'all' ? 'Create your first invoice to begin' : `No ${filter === 'due' ? 'due today' : filter} invoices`}
+            </p>
+            {filter === 'all' && (
+              <Link
+                href="/dashboard/new"
+                className={`mt-2 bg-[var(--t-fg)] text-[var(--t-bg)] px-6 py-2 ${sg} small-caps font-bold text-xs tracking-wider hover:opacity-80 transition-opacity border border-[var(--t-border)]`}
+              >
+                Create Invoice
+              </Link>
+            )}
+          </div>
+
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[var(--t-fg)] text-[var(--t-bg)]">
+                  {['#', 'Client', 'Amount', 'Due Date', 'Status', 'Action'].map((h, i) => (
+                    <th
+                      key={h}
+                      className={`px-5 py-3.5 border-r border-[var(--t-bg)]/10 last:border-r-0 ${sg} small-caps font-bold text-xs tracking-wider ${i === 2 || i === 5 ? 'text-right' : ''}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((inv, idx) => (
+                  <tr
+                    key={inv._id}
+                    className={`border-b border-[var(--t-border)] last:border-b-0 transition-colors hover:bg-[var(--t-surface)] ${idx % 2 === 1 ? 'bg-[var(--t-surface)]' : 'bg-[var(--t-bg)]'}`}
+                  >
+                    {/* # */}
+                    <td className="px-5 py-4 border-r border-[var(--t-border)] text-xs font-mono tabular-nums text-[var(--t-dim)] w-16">
+                      {String(inv.invoiceNumber).padStart(3, '0')}
+                    </td>
+                    {/* Client */}
+                    <td className="px-5 py-4 border-r border-[var(--t-border)] min-w-[160px]">
+                      <p className="font-bold text-sm text-[var(--t-fg)] leading-snug">{inv.clientName}</p>
+                      <p className="text-xs mt-0.5 text-[var(--t-dim)]">{inv.clientEmail}</p>
+                    </td>
+                    {/* Amount */}
+                    <td className={`px-5 py-4 border-r border-[var(--t-border)] text-right ${sg} font-bold text-sm tabular-nums text-[var(--t-fg)] w-28`}>
+                      {fmtAmt(inv.amount, inv.currency)}
+                    </td>
+                    {/* Due date */}
+                    <td className="px-5 py-4 border-r border-[var(--t-border)] text-xs tabular-nums text-[var(--t-muted)] w-32">
+                      {fmtDate(inv.dueDate)}
+                    </td>
+                    {/* Status */}
+                    <td className="px-5 py-4 border-r border-[var(--t-border)] w-28">
+                      <span className={`${sg} small-caps font-bold text-xs ${STATUS_COLOR[inv.status] ?? 'text-[var(--t-fg)]'}`}>
+                        {STATUS_LABEL[inv.status] ?? `[ ${inv.status.toUpperCase()} ]`}
+                      </span>
+                    </td>
+                    {/* Actions */}
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        {inv.status !== 'paid' && (
+                          <>
                             <button
-                              onClick={() => markPaid({ id: invoice._id })}
-                              className="text-xs font-medium text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-md transition-colors"
+                              onClick={async () => {
+                                setReminding(inv._id);
+                                try { await remindClient({ invoiceId: inv._id }); } catch {}
+                                setReminding(null);
+                              }}
+                              disabled={reminding === inv._id}
+                              className={`${actionBtn} disabled:text-[var(--t-dim)] disabled:no-underline`}
                             >
+                              {reminding === inv._id ? 'Sending...' : 'Re-Send'}
+                            </button>
+                            <button onClick={() => markPaid({ id: inv._id })} className={actionBtn}>
                               Mark Paid
                             </button>
-                          )}
-                          <button
-                            onClick={() => remove({ id: invoice._id })}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                          </>
+                        )}
+                        <button
+                          onClick={() => remove({ id: inv._id })}
+                          className={`${sg} small-caps font-bold text-xs underline underline-offset-4 px-2 py-1.5 transition-colors text-[var(--t-dim)] hover:bg-[var(--t-fg)] hover:text-[var(--t-bg)]`}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Bottom grid ─────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        {/* Recent activity */}
+        <div className="border border-[var(--t-border)]">
+          <div className="px-6 py-4 border-b border-[var(--t-border)] bg-[var(--t-surface)]">
+            <h3 className={`${sg} font-bold text-sm small-caps tracking-widest text-[var(--t-fg)]`}>Recent Activity</h3>
+          </div>
+          <div className="divide-y divide-[var(--t-border)]">
+            {!invoices || invoices.length === 0 ? (
+              <div className="px-6 py-10 text-center">
+                <p className={`${sg} small-caps font-bold text-xs text-[var(--t-muted)]`}>No recent activity</p>
+              </div>
+            ) : (
+              invoices.slice(0, 6).map((inv) => (
+                <div key={inv._id} className="flex justify-between items-center px-6 py-4 hover:bg-[var(--t-surface)] transition-colors gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-tight text-[var(--t-fg)] truncate">
+                      #{String(inv.invoiceNumber).padStart(3, '0')} — {inv.clientName}
+                    </p>
+                    <p className="text-xs mt-0.5 text-[var(--t-dim)]">{fmtAmt(inv.amount, inv.currency)}</p>
+                  </div>
+                  <span className={`${sg} small-caps font-bold text-xs shrink-0 ${STATUS_COLOR[inv.status] ?? 'text-[var(--t-fg)]'}`}>
+                    {STATUS_LABEL[inv.status] ?? `[ ${inv.status.toUpperCase()} ]`}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
         </div>
-      </main>
+
+        {/* System alert */}
+        <div className="border border-[var(--t-border)] flex flex-col">
+          <div className="px-6 py-4 border-b border-[var(--t-border)] bg-[var(--t-surface)]">
+            <h3 className={`${sg} font-bold text-sm small-caps tracking-widest text-[var(--t-fg)]`}>Status</h3>
+          </div>
+          <div className="px-6 py-8 flex-1 flex flex-col justify-between">
+            <p className="text-sm leading-relaxed text-[var(--t-muted)]">
+              {summary && summary.overdue > 0
+                ? `${summary.overdue} overdue ${summary.overdue === 1 ? 'invoice' : 'invoices'}. Automated reminders are running — or send one manually from the list above.`
+                : 'All invoices are up to date. Nothing needs your attention right now.'}
+            </p>
+            <div className="mt-8 flex gap-3">
+              <button
+                onClick={() => setFilter('overdue')}
+                className={`flex-1 border border-[var(--t-border)] py-2.5 ${sg} small-caps font-bold text-xs tracking-wider text-[var(--t-fg)] hover:bg-[var(--t-fg)] hover:text-[var(--t-bg)] transition-colors`}
+              >
+                View Overdue
+              </button>
+              <Link
+                href="/dashboard/new"
+                className={`flex-1 bg-[var(--t-fg)] text-[var(--t-bg)] py-2.5 ${sg} small-caps font-bold text-xs tracking-wider text-center hover:opacity-80 transition-opacity border border-[var(--t-border)]`}
+              >
+                New Invoice
+              </Link>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

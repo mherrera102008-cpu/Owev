@@ -1,14 +1,37 @@
 // @ts-nocheck
 import { v } from "convex/values";
-import { internalAction, internalMutation } from "./_generated/server";
+import { internalAction, internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getCurrentUserId } from "./users";
+
+// Escapes user-supplied text before embedding in HTML to prevent XSS
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
 
 // Generates the reminder email HTML
+const PRESET_COLORS: Record<string, string> = {
+  black: "#111827",
+  blue: "#2563eb",
+  violet: "#7c3aed",
+  green: "#16a34a",
+  rose: "#e11d48",
+};
+
+const ZERO_DECIMAL_CURRENCIES = new Set(["JPY", "KRW"]);
+
 function buildEmailHtml(invoice: any, reminderType: string): { subject: string; html: string } {
+  const currency = invoice.currency ?? "USD";
+  const divisor = ZERO_DECIMAL_CURRENCIES.has(currency) ? 1 : 100;
   const amount = new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
-  }).format(invoice.amount / 100);
+    currency,
+  }).format(invoice.amount / divisor);
 
   const dueDate = new Date(invoice.dueDate).toLocaleDateString("en-US", {
     weekday: "long",
@@ -17,28 +40,32 @@ function buildEmailHtml(invoice: any, reminderType: string): { subject: string; 
     year: "numeric",
   });
 
+  // Escape all user-supplied string values used in HTML to prevent XSS
+  const safeClientName = escapeHtml(invoice.clientName ?? "");
+  const safeDescription = invoice.description ? escapeHtml(invoice.description) : "";
+  const invoiceNum = Number(invoice.invoiceNumber);
+
+  // Only allow whitelisted accent colors; never embed arbitrary user input as CSS
+  const accentColor = PRESET_COLORS[invoice.accentColor ?? ""] ?? "#111827";
+
   let subject = "";
   let headline = "";
   let body = "";
-  let accentColor = "#2563eb";
 
   if (reminderType.includes("_days_before")) {
-    const days = reminderType.replace("_days_before", "");
-    subject = `Payment reminder: Invoice #${invoice.invoiceNumber} due in ${days} day(s)`;
+    const days = parseInt(reminderType.replace("_days_before", ""), 10);
+    subject = `Payment reminder: Invoice #${invoiceNum} due in ${days} day(s)`;
     headline = `Your invoice is due in ${days} day(s)`;
-    body = `This is a friendly reminder that invoice <strong>#${invoice.invoiceNumber}</strong> for <strong>${amount}</strong> is due on <strong>${dueDate}</strong>.`;
-    accentColor = "#2563eb";
+    body = `This is a friendly reminder that invoice <strong>#${invoiceNum}</strong> for <strong>${amount}</strong> is due on <strong>${dueDate}</strong>.`;
   } else if (reminderType === "on_due_date") {
-    subject = `Invoice #${invoice.invoiceNumber} is due today`;
+    subject = `Invoice #${invoiceNum} is due today`;
     headline = "Your invoice is due today";
-    body = `Invoice <strong>#${invoice.invoiceNumber}</strong> for <strong>${amount}</strong> is due <strong>today</strong>. Please arrange payment to avoid a late notice.`;
-    accentColor = "#d97706";
+    body = `Invoice <strong>#${invoiceNum}</strong> for <strong>${amount}</strong> is due <strong>today</strong>. Please arrange payment to avoid a late notice.`;
   } else {
-    const days = reminderType.replace("_days_after", "");
-    subject = `Overdue notice: Invoice #${invoice.invoiceNumber} — ${days} day(s) past due`;
+    const days = parseInt(reminderType.replace("_days_after", ""), 10);
+    subject = `Overdue notice: Invoice #${invoiceNum} — ${days} day(s) past due`;
     headline = `Invoice ${days} day(s) overdue`;
-    body = `Invoice <strong>#${invoice.invoiceNumber}</strong> for <strong>${amount}</strong> was due on <strong>${dueDate}</strong> and remains unpaid. Please arrange payment at your earliest convenience.`;
-    accentColor = "#dc2626";
+    body = `Invoice <strong>#${invoiceNum}</strong> for <strong>${amount}</strong> was due on <strong>${dueDate}</strong> and remains unpaid. Please arrange payment at your earliest convenience.`;
   }
 
   const html = `<!DOCTYPE html>
@@ -50,7 +77,7 @@ function buildEmailHtml(invoice: any, reminderType: string): { subject: string; 
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden">
         <!-- Header -->
         <tr><td style="background:${accentColor};padding:24px 32px">
-          <p style="margin:0;color:#ffffff;font-size:20px;font-weight:700">InvoiceTracker</p>
+          <p style="margin:0;color:#ffffff;font-size:20px;font-weight:700">Owev</p>
         </td></tr>
         <!-- Body -->
         <tr><td style="padding:32px">
@@ -62,12 +89,12 @@ function buildEmailHtml(invoice: any, reminderType: string): { subject: string; 
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="font-size:13px;color:#6b7280">Invoice #</td>
-                  <td align="right" style="font-size:13px;font-weight:600;color:#111827">#${invoice.invoiceNumber}</td>
+                  <td align="right" style="font-size:13px;font-weight:600;color:#111827">#${invoiceNum}</td>
                 </tr>
                 <tr><td colspan="2" style="padding:6px 0"><hr style="border:none;border-top:1px solid #e5e7eb;margin:0"></td></tr>
                 <tr>
                   <td style="font-size:13px;color:#6b7280">Client</td>
-                  <td align="right" style="font-size:13px;font-weight:600;color:#111827">${invoice.clientName}</td>
+                  <td align="right" style="font-size:13px;font-weight:600;color:#111827">${safeClientName}</td>
                 </tr>
                 <tr><td colspan="2" style="padding:6px 0"><hr style="border:none;border-top:1px solid #e5e7eb;margin:0"></td></tr>
                 <tr>
@@ -82,12 +109,12 @@ function buildEmailHtml(invoice: any, reminderType: string): { subject: string; 
               </table>
             </td></tr>
           </table>
-          ${invoice.description ? `<p style="margin:0 0 24px;font-size:14px;color:#6b7280"><em>${invoice.description}</em></p>` : ""}
+          ${safeDescription ? `<p style="margin:0 0 24px;font-size:14px;color:#6b7280"><em>${safeDescription}</em></p>` : ""}
           <p style="margin:0;font-size:13px;color:#9ca3af">If you have already arranged payment, please disregard this notice. Questions? Reply to this email.</p>
         </td></tr>
         <!-- Footer -->
         <tr><td style="padding:16px 32px;background:#f9fafb;border-top:1px solid #e5e7eb">
-          <p style="margin:0;font-size:12px;color:#9ca3af">Sent via InvoiceTracker · Automated payment reminder</p>
+          <p style="margin:0;font-size:12px;color:#9ca3af">Sent via Owev · Automated payment reminder</p>
         </td></tr>
       </table>
     </td></tr>
@@ -164,6 +191,33 @@ export const sendReminder = internalAction({
         errorMessage: String(err?.message ?? err),
       });
     }
+  },
+});
+
+// Public action: manually send a reminder for an invoice (called from the dashboard)
+export const sendManualReminder = action({
+  args: { invoiceId: v.id("invoices") },
+  handler: async (ctx, { invoiceId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+
+    const invoice = await ctx.runQuery(internal.invoices.getById, { id: invoiceId });
+    if (!invoice || invoice.ownerId !== identity.subject) {
+      throw new Error("Invoice not found");
+    }
+
+    // Determine reminder type based on current status
+    const now = Date.now();
+    let reminderType = "on_due_date";
+    if (invoice.dueDate > now) {
+      const daysUntilDue = Math.ceil((invoice.dueDate - now) / (24 * 60 * 60 * 1000));
+      reminderType = `${daysUntilDue}_days_before`;
+    } else if (invoice.status === "overdue") {
+      const daysOverdue = Math.floor((now - invoice.dueDate) / (24 * 60 * 60 * 1000));
+      reminderType = `${daysOverdue}_days_after`;
+    }
+
+    await ctx.runAction(internal.reminders.sendReminder, { invoiceId, reminderType });
   },
 });
 

@@ -23,6 +23,13 @@ export const updateReminderConfig = mutation({
   },
   handler: async (ctx, { daysBefore, daysAfter }) => {
     const ownerId = await getCurrentUserId(ctx);
+
+    const isValid = (arr: number[]) =>
+      arr.length <= 20 && arr.every((d) => Number.isInteger(d) && d >= 1 && d <= 365);
+    if (!isValid(daysBefore) || !isValid(daysAfter)) {
+      throw new Error("Each reminder day must be an integer between 1 and 365, with at most 20 entries");
+    }
+
     const tenant = await ctx.db
       .query("tenants")
       .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))

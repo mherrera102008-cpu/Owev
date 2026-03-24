@@ -36,7 +36,9 @@ export default defineSchema({
       v.literal("overdue"),
       v.literal("paid")
     ),
+    currency: v.optional(v.string()),
     description: v.optional(v.string()),
+    accentColor: v.optional(v.string()),
     invoiceNumber: v.optional(v.number()),
     scheduledReminderIds: v.optional(
       v.array(v.id("_scheduled_functions"))
